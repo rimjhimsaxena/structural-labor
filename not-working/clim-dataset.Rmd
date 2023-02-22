@@ -1,0 +1,23 @@
+---
+title: "02clim-dataset"
+author: "Rimjhim Saxena"
+date: '2023-02-22'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+dir_path = "~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/07Climate/csv-files/precip/"
+
+file_names =  intersect(list.files(dir_path, pattern = "616165.prcp.prcp_0p25_daily_"),list.files(dir_path,pattern = "*.csv"))
+```
+
+
+```{r}
+appended_data = data.frame()
+
+for (file_name in file_names) {
+  file_data = read.csv(paste0(dir_path,file_name))
+  appended_data = rbind(appended_data,file_data)
+}
+```
