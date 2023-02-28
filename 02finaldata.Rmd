@@ -1,0 +1,51 @@
+---
+title: '02'
+author: "Rimjhim Saxena"
+date: "2023-02-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+library(dplyr)
+a = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/04Append/nss_43_51_56_57_63_66.csv")
+
+a = a[,-c(14:16,18,24:35)]
+
+```
+
+
+Aggregate data 
+```{r}
+b = a %>% 
+  group_by(State_District_72,Job_Sector,round) %>% 
+  summarise(mpce = mean(mpce,na.rm = T),
+            food_month = mean(foodexp_monthly,na.rm = T),
+            clothing_annual = mean(clothing_annual,na.rm = T),
+            goodservice_month = mean(GoodsServicesExp_monthly,na.rm = T),
+            eduhealth_annual = mean(EduHealth_annual,na.rm = T),
+            total = n())
+
+c = a %>% 
+  group_by(State_District_72,round) %>% 
+  summarise(freq= n())
+
+
+d = merge(b,c,by=c("State_District_72","round"),all.x = T)
+d$share = round((d$total/d$freq)*100,2)
+d$Exposure = ifelse(d$Job_Sector=="Service","Insular","Exposed")
+
+e = a %>% 
+  group_by(State_District_72,round,Exposure) %>% 
+  summarise(tot_exposure = n())
+
+f = merge(d,e,by=c("State_District_72","round","Exposure"))
+
+```
+
+Writing data
+```{r}
+write.csv(f,"~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/05Final/final-data.csv",row.names = F)
+
+```
+
