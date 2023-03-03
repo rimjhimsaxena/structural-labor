@@ -1,0 +1,53 @@
+---
+title: "Untitled"
+author: "Rimjhim Saxena"
+date: "2023-03-01"
+output: html_document
+---
+
+```{r}
+rm(list = ls())
+monthmean = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/07Climate/monthly-means/monthly-mean-1965-1975.csv",sep = ";")
+
+library(ncdf4) #netcdf manipulation
+library(raster) #raster manipulation
+library(rgdal) #geospatial analysis
+library(ggplot2) #plotting
+library(sf)
+shp = st_read("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/Shapefile/geo2_in2004/geo2_in2004.shp")
+
+
+monthmean <- monthmean[-!is.na(monthmean$lat),]
+monthmean <- monthmean[-!is.na(monthmean$lon),]
+
+monthmean <- monthmean[complete.cases(monthmean),]
+
+coords <- as.data.frame(cbind(monthmean$lon,monthmean$lat))
+
+cord.dec = SpatialPointsDataFrame(coords, monthmean, proj4string = CRS("+proj=longlat"))
+
+class(cord.dec)
+
+shp <- shp[ ! st_is_empty( shp ) , ]
+
+shp_poly <- as_Spatial(shp)
+
+pts.poly <- over(cord.dec, shp_poly)
+
+pts.poly2 <- cbind(monthmean, pts.poly)
+
+pts.poly2 = pts.poly2[complete.cases(pts.poly2),]
+
+temp = pts.poly2 %>% 
+  group_by(ADMIN_NAME,month,DIST2004) %>% 
+  summarise(temp_month = mean(temp,na.rm = T))
+
+temp$temp_month = temp$temp_month - 273.15
+
+range(temp$temp_month)
+```
+
+Write data
+```{r}
+write.csv(temp,"~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/07Climate/monthly-means/month-mean-with-district.csv",row.names = F)
+```

@@ -10,8 +10,16 @@ rm(list = ls())
 library(dplyr)
 a = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/04Append/nss_43_51_56_57_63_66.csv")
 
-a = a[,-c(14:16,18,24:35)]
+a = a[,-c(15:17,19,25:36)]
+geog = a[,c(20,2:4,6)]
+subround = a[,c(20,1,5,19)]
 
+# Not all districts had all surveys done in one sub round
+# Therefore there will be variation in temperature within district
+# Gotta rethink following data aggregation - Maybe just need to add temperature by subgroup 
+round_ag = subround %>% 
+  group_by(round,SubRound,State_District_72) %>% 
+  summarise(total = n())
 ```
 
 
@@ -43,9 +51,19 @@ f = merge(d,e,by=c("State_District_72","round","Exposure"))
 
 ```
 
+adding geog to data
+
+```{r}
+g = merge(f,geog,by=c("State_District_72"))
+g$newid = paste0(g$State_District_72,g$round,g$Job_Sector)
+g = g[!duplicated(g$newid),]
+g = g[,-c(18)]
+```
+
+
 Writing data
 ```{r}
-write.csv(f,"~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/05Final/final-data.csv",row.names = F)
-
+write.csv(f,"~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/06Final/final-data.csv",row.names = F)
+write.csv(g,"~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/06Final/final-wgeog.csv",row.names = F)
 ```
 

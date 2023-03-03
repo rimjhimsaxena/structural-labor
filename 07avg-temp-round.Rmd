@@ -1,0 +1,391 @@
+---
+title: "Untitled"
+author: "Rimjhim Saxena"
+date: "2023-03-01"
+output: html_document
+---
+
+```{r}
+rm(list = ls())
+library(dplyr)
+
+df = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/04Append/nss_43_51_56_57_63_66.csv")
+temp = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/07Climate/loc-temp/tmax-acc/all-month-mean.csv",sep = ";")
+concord = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/EXTRA/District_cross_shapeDIST04_NSS72.csv")
+```
+
+
+Find % of households in each subround in a round in a district
+```{r}
+df$SubRound = ifelse(df$SubRound==0,1,df$SubRound)
+test = df[is.na(df$SubRound),]
+df$SubRound[is.na(df$SubRound)] = 1
+
+count = df %>% 
+  group_by(State_District_72,round,SubRound) %>% 
+  summarise(total = n())
+
+total = df %>% 
+  group_by(State_District_72,round) %>% 
+  summarise(n = n())
+
+count = merge(count,total,by=c("State_District_72","round"),all.x=T)
+
+count$share_subround = round((count$total/count$n)*100,2)
+```
+
+assign subround to temp data
+
+```{r}
+temp$year = sprintf("%04d",as.numeric(temp$year))
+temp$month = sprintf("%02d",as.numeric(temp$month))
+
+temp$yearmonth = paste0(temp$year,temp$month)
+
+temp$yearmonth = as.numeric(temp$yearmonth)
+
+temp = temp[order(temp$yearmonth),]
+```
+
+
+Round 43
+```{r}
+temp$SubRound1 = ifelse(temp$yearmonth>=198606 & temp$yearmonth<=198706,1,0) 
+temp$SubRound2 = ifelse(temp$yearmonth>=198609 & temp$yearmonth<=198709,1,0) 
+temp$SubRound3 = ifelse(temp$yearmonth>=198612 & temp$yearmonth<=198712,1,0) 
+temp$SubRound4 = ifelse(temp$yearmonth>=198703 & temp$yearmonth<=198803,1,0) 
+
+round43_1 = temp %>% 
+  group_by(SubRound1,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round43_1 = round43_1[which(round43_1$SubRound1==1),]
+round43_1$SubRound = 1
+
+round43_2 = temp %>% 
+  group_by(SubRound2,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round43_2 = round43_2[which(round43_2$SubRound2==1),]
+round43_2$SubRound = 2
+
+round43_3 = temp %>% 
+  group_by(SubRound3,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round43_3 = round43_3[which(round43_3$SubRound3==1),]
+round43_3$SubRound = 3
+
+round43_4 = temp %>% 
+  group_by(SubRound4,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round43_4 = round43_4[which(round43_4$SubRound4==1),]
+round43_4$SubRound = 4
+
+round43_1 = round43_1[,-1]
+round43_2 = round43_2[,-1]
+round43_3 = round43_3[,-1]
+round43_4 = round43_4[,-1]
+
+round43 = list(round43_1,round43_2,round43_3,round43_4)
+dat = do.call(rbind,round43)
+dat$round = 43
+```
+
+round 51
+```{r}
+temp$SubRound1 = ifelse(temp$yearmonth>=199306 & temp$yearmonth<=199406,1,0) 
+temp$SubRound2 = ifelse(temp$yearmonth>=199309 & temp$yearmonth<=199409,1,0) 
+temp$SubRound3 = ifelse(temp$yearmonth>=199312 & temp$yearmonth<=199412,1,0) 
+temp$SubRound4 = ifelse(temp$yearmonth>=199403 & temp$yearmonth<=199503,1,0) 
+
+round51_1 = temp %>% 
+  group_by(SubRound1,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round51_1 = round51_1[which(round51_1$SubRound1==1),]
+round51_1$SubRound = 1
+
+round51_2 = temp %>% 
+  group_by(SubRound2,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round51_2 = round51_2[which(round51_2$SubRound2==1),]
+round51_2$SubRound = 2
+
+round51_3 = temp %>% 
+  group_by(SubRound3,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round51_3 = round51_3[which(round51_3$SubRound3==1),]
+round51_3$SubRound = 3
+
+round51_4 = temp %>% 
+  group_by(SubRound4,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round51_4 = round51_4[which(round51_4$SubRound4==1),]
+round51_4$SubRound = 4
+
+round51_1 = round51_1[,-1]
+round51_2 = round51_2[,-1]
+round51_3 = round51_3[,-1]
+round51_4 = round51_4[,-1]
+
+round51 = list(round51_1,round51_2,round51_3,round51_4)
+dat_51 = do.call(rbind,round51)
+dat_51$round = 51
+```
+
+
+round 56
+```{r}
+temp$SubRound1 = ifelse(temp$yearmonth>=199906 & temp$yearmonth<=200006,1,0) 
+temp$SubRound2 = ifelse(temp$yearmonth>=199909 & temp$yearmonth<=200009,1,0) 
+temp$SubRound3 = ifelse(temp$yearmonth>=199912 & temp$yearmonth<=200012,1,0) 
+temp$SubRound4 = ifelse(temp$yearmonth>=200003 & temp$yearmonth<=200103,1,0) 
+
+round56_1 = temp %>% 
+  group_by(SubRound1,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round56_1 = round56_1[which(round56_1$SubRound1==1),]
+round56_1$SubRound = 1
+
+round56_2 = temp %>% 
+  group_by(SubRound2,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round56_2 = round56_2[which(round56_2$SubRound2==1),]
+round56_2$SubRound = 2
+
+round56_3 = temp %>% 
+  group_by(SubRound3,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round56_3 = round56_3[which(round56_3$SubRound3==1),]
+round56_3$SubRound = 3
+
+round56_4 = temp %>% 
+  group_by(SubRound4,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round56_4 = round56_4[which(round56_4$SubRound4==1),]
+round56_4$SubRound = 4
+
+round56_1 = round56_1[,-1]
+round56_2 = round56_2[,-1]
+round56_3 = round56_3[,-1]
+round56_4 = round56_4[,-1]
+
+round56 = list(round56_1,round56_2,round56_3,round56_4)
+dat_56 = do.call(rbind,round56)
+dat_56$round = 56
+```
+
+
+round 57
+```{r}
+temp$SubRound1 = ifelse(temp$yearmonth>=200006 & temp$yearmonth<=200106,1,0) 
+temp$SubRound2 = ifelse(temp$yearmonth>=200009 & temp$yearmonth<=200109,1,0) 
+temp$SubRound3 = ifelse(temp$yearmonth>=200012 & temp$yearmonth<=200112,1,0) 
+temp$SubRound4 = ifelse(temp$yearmonth>=200103 & temp$yearmonth<=200203,1,0) 
+
+round57_1 = temp %>% 
+  group_by(SubRound1,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round57_1 = round57_1[which(round57_1$SubRound1==1),]
+round57_1$SubRound = 1
+
+round57_2 = temp %>% 
+  group_by(SubRound2,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round57_2 = round57_2[which(round57_2$SubRound2==1),]
+round57_2$SubRound = 2
+
+round57_3 = temp %>% 
+  group_by(SubRound3,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round57_3 = round57_3[which(round57_3$SubRound3==1),]
+round57_3$SubRound = 3
+
+round57_4 = temp %>% 
+  group_by(SubRound4,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round57_4 = round57_4[which(round57_4$SubRound4==1),]
+round57_4$SubRound = 4
+
+round57_1 = round57_1[,-1]
+round57_2 = round57_2[,-1]
+round57_3 = round57_3[,-1]
+round57_4 = round57_4[,-1]
+
+round57 = list(round57_1,round57_2,round57_3,round57_4)
+dat_57 = do.call(rbind,round57)
+dat_57$round = 57
+```
+
+
+round 63
+```{r}
+temp$SubRound1 = ifelse(temp$yearmonth>=200506 & temp$yearmonth<=200606,1,0) 
+temp$SubRound2 = ifelse(temp$yearmonth>=200509 & temp$yearmonth<=200609,1,0) 
+temp$SubRound3 = ifelse(temp$yearmonth>=200512 & temp$yearmonth<=200612,1,0) 
+temp$SubRound4 = ifelse(temp$yearmonth>=200603 & temp$yearmonth<=200703,1,0) 
+
+round63_1 = temp %>% 
+  group_by(SubRound1,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round63_1 = round63_1[which(round63_1$SubRound1==1),]
+round63_1$SubRound = 1
+
+round63_2 = temp %>% 
+  group_by(SubRound2,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round63_2 = round63_2[which(round63_2$SubRound2==1),]
+round63_2$SubRound = 2
+
+round63_3 = temp %>% 
+  group_by(SubRound3,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round63_3 = round63_3[which(round63_3$SubRound3==1),]
+round63_3$SubRound = 3
+
+round63_4 = temp %>% 
+  group_by(SubRound4,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round63_4 = round63_4[which(round63_4$SubRound4==1),]
+round63_4$SubRound = 4
+
+round63_1 = round63_1[,-1]
+round63_2 = round63_2[,-1]
+round63_3 = round63_3[,-1]
+round63_4 = round63_4[,-1]
+
+round63 = list(round63_1,round63_2,round63_3,round63_4)
+dat_63 = do.call(rbind,round63)
+dat_63$round = 63
+```
+
+
+
+round 66
+```{r}
+temp$SubRound1 = ifelse(temp$yearmonth>=200806 & temp$yearmonth<=200906,1,0) 
+temp$SubRound2 = ifelse(temp$yearmonth>=200809 & temp$yearmonth<=200909,1,0) 
+temp$SubRound3 = ifelse(temp$yearmonth>=200812 & temp$yearmonth<=200912,1,0) 
+temp$SubRound4 = ifelse(temp$yearmonth>=200903 & temp$yearmonth<=201003,1,0) 
+
+round66_1 = temp %>% 
+  group_by(SubRound1,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round66_1 = round66_1[which(round66_1$SubRound1==1),]
+round66_1$SubRound = 1
+
+round66_2 = temp %>% 
+  group_by(SubRound2,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round66_2 = round66_2[which(round66_2$SubRound2==1),]
+round66_2$SubRound = 2
+
+round66_3 = temp %>% 
+  group_by(SubRound3,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round66_3 = round66_3[which(round66_3$SubRound3==1),]
+round66_3$SubRound = 3
+
+round66_4 = temp %>% 
+  group_by(SubRound4,ADMIN_NAME,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T))
+
+round66_4 = round66_4[which(round66_4$SubRound4==1),]
+round66_4$SubRound = 4
+
+round66_1 = round66_1[,-1]
+round66_2 = round66_2[,-1]
+round66_3 = round66_3[,-1]
+round66_4 = round66_4[,-1]
+
+round66 = list(round66_1,round66_2,round66_3,round66_4)
+dat_66 = do.call(rbind,round66)
+dat_66$round = 66
+```
+
+
+
+Bringing it all together
+
+```{r}
+df_list = list(dat,dat_51,dat_56,dat_57,dat_63,dat_66)
+maindat = do.call(rbind,df_list)
+
+```
+
+
+Adding concordance to temp data
+
+```{r}
+maindat_dist = merge(maindat,concord,by=c("DIST2004"),all.x = T)
+
+```
+
+
+Adding temp data to count data
+
+```{r}
+count_temp = merge(count,maindat_dist,by=c("State_District_72","round","SubRound"))
+```
+
+
+Finding average temp & heat acc across rounds in districts in India
+
+```{r}
+count_avg = count_temp %>% 
+  group_by(State_District_72,DIST2004,ADMIN_NAME,round) %>% 
+  summarize(tmax = weighted.mean(tmax,share_subround),
+            heat_acc = weighted.mean(heat_acc,share_subround))
+
+```
+
+
+Write the data
+
+```{r}
+write.csv(count_avg,"~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/06Final/avg-temp-round.csv",row.names = F)
+```

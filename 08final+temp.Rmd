@@ -1,0 +1,44 @@
+---
+title: "Untitled"
+author: "Rimjhim Saxena"
+date: "2023-03-02"
+output: html_document
+---
+
+```{r}
+rm(list = ls())
+
+df = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/06Final/final-wgeog.csv")
+
+temp = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/06Final/avg-temp-round.csv")
+
+concord = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/EXTRA/District_cross_shapeDIST04_NSS72.csv")
+```
+
+
+add concordance to df 
+```{r}
+df$State_District_72 = sprintf("%04d",df$State_District_72)
+concord$State_District_72 = sprintf("%04d",concord$State_District_72)
+concord$DIST2004 = as.numeric(concord$DIST2004)
+concord$DIST2004 = sprintf("%04d",concord$DIST2004)
+
+df_concord = merge(df,concord,by=c("State_District_72"),all.x = T)
+```
+
+add temp to df_concord
+
+```{r}
+temp$State_District_72 = sprintf("%04d",temp$State_District_72)
+temp$DIST2004 = sprintf("%04d",temp$DIST2004)
+
+df_temp = merge(df_concord,temp,by=c("State_District_72","DIST2004","round"),all.x = T)
+```
+
+
+Writing the data
+```{r}
+write.csv(df_temp,"~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/06Final/final-wgeog-temp.csv",row.names = F)
+```
+
+

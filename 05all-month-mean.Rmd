@@ -1,0 +1,50 @@
+---
+title: "Untitled"
+author: "Rimjhim Saxena"
+date: "2023-03-01"
+output: html_document
+---
+
+```{r}
+rm(list = ls())
+
+library(ncdf4)
+library(lubridate)
+
+setwd("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/07Climate/loc-temp/tmax/")
+path <- "~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/07Climate/loc-temp/tmax/"
+file_names <- list.files(path, pattern = "temp_round")
+loc = "~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/07Climate/loc-temp/tmax-acc/"
+new_filename = gsub(".csv","",file_names)
+monthmean = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/07Climate/monthly-means/month-mean-with-district.csv")
+```
+
+
+```{r}
+
+for (file in file_names) {
+  data = read.csv(file,header = T)
+  data$month = substr(data$date,6,7)
+  data$month = as.numeric(data$month)
+result = merge(data,monthmean,by=c("ADMIN_NAME","DIST2004","month"))
+result$heat = result$tmax - result$temp_month
+result$acc = ifelse(result$heat<0,0,result$heat)  
+
+result$date = as.Date(result$date)
+
+result = result %>% 
+  group_by(ADMIN_NAME) %>% 
+  arrange(date) %>% 
+  mutate(heat_acc = cumsum(acc))
+
+result$year = substr(result$date,1,4)
+
+write.table(result,file = paste0(loc,file,"-month-mean.csv"),row.names = F,sep = ";")
+
+}
+
+
+```
+
+
+

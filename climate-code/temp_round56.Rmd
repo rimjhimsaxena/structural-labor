@@ -1,0 +1,95 @@
+---
+title: "dealing with temp data"
+author: "Rimjhim Saxena"
+date: "2023-02-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+# NSS 56 :
+
+# Subround 1 : July 2000 - Spetember 2000 (June 1999 - June 2000)
+# Subround 2 : Oct 2000 - December 2000 (Sept 1999 - Sept 2000)
+# Subround 3 : January 2001 - March 2001 (Dec 1999 - Dec 2000)
+# Subround 4 : April 2001 - June 2001 (March 2000 - March 2001)
+
+# I need data from June 1999 - March 2001
+# Taking temp preceeding one year 
+rm(list = ls())
+temp99 = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/07Climate/csv-files/tmax/616165.tmax.tmax_0p25_daily_1999-1999.nc.csv",sep = ";")
+
+temp00 = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/07Climate/csv-files/tmax/616165.tmax.tmax_0p25_daily_2000-2000.nc.csv",sep = ";")
+
+temp01 = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/07Climate/csv-files/tmax/616165.tmax.tmax_0p25_daily_2001-2001.nc.csv",sep = ";")
+```
+
+Data wrangling
+```{r}
+temp99$month = substr(temp99$date,6,7)
+temp99$month = as.numeric(temp99$month)
+temp99 = temp99[which(temp99$month>=06),]
+
+temp00$month = substr(temp00$date,6,7)
+temp00$month = as.numeric(temp00$month)
+
+temp01$month = substr(temp01$date,6,7)
+temp01$month = as.numeric(temp01$month)
+temp01 = temp01[which(temp01$month<=03),]
+
+#bring it all together
+temp99 = rbind(temp99,temp00)
+temp99 = rbind(temp99,temp01)
+```
+
+
+Match loc to districts 
+```{r}
+library(ncdf4) #netcdf manipulation
+library(raster) #raster manipulation
+library(rgdal) #geospatial analysis
+library(ggplot2) #plotting
+library(sf)
+shp = st_read("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/Shapefile/geo2_in2004/geo2_in2004.shp")
+
+temp99 <- temp99[-!is.na(temp99$lat),]
+temp99 <- temp99[-!is.na(temp99$lon),]
+
+temp99 <- temp99[complete.cases(temp99),]
+
+coords <- as.data.frame(cbind(temp99$lon,temp99$lat))
+
+cord.dec = SpatialPointsDataFrame(coords, temp99, proj4string = CRS("+proj=longlat"))
+
+class(cord.dec)
+
+shp <- shp[ ! st_is_empty( shp ) , ]
+
+shp_poly <- as_Spatial(shp)
+
+pts.poly <- over(cord.dec, shp_poly)
+
+pts.poly2 <- cbind(temp99, pts.poly)
+
+pts.poly2 = pts.poly2[complete.cases(pts.poly2),]
+
+```
+
+
+Aggregating temperature of a district by averaging all the points that fall in that polygon on a given day
+
+```{r}
+temp = pts.poly2 %>% 
+  group_by(ADMIN_NAME,date,DIST2004) %>% 
+  summarise(tmax = mean(tmax,na.rm = T))
+
+temp$tmax = temp$tmax - 273.15
+
+range(temp$date)
+```
+
+writing data
+```{r}
+write.csv(temp,"~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/07Climate/loc-temp/tmax/temp_round56.csv",row.names = F)
+
+```
