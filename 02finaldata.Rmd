@@ -10,9 +10,34 @@ rm(list = ls())
 library(dplyr)
 a = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/04Append/nss_43_51_56_57_63_66.csv")
 
-a = a[,-c(15:17,19,25:36)]
-geog = a[,c(20,2:4,6)]
-subround = a[,c(20,1,5,19)]
+klems = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/EXTRA/NIC98-Sector-Exposure.csv")
+
+klems_long = klems %>% 
+  pivot_longer(cols = c(caplab_1987,caplab_1994,caplab_2000,caplab_2001,caplab_2006,caplab_2009),
+               names_to = "year",
+               values_to = "caplab")
+
+klems_long = klems_long %>% 
+  mutate(round = case_when(year=="caplab_1987" ~ 43,
+                           year=="caplab_1994" ~ 51,
+                           year=="caplab_2000" ~ 56,
+                           year=="caplab_2001" ~ 57,
+                           year=="caplab_2006" ~ 63,
+                           year=="caplab_2009" ~ 66))
+
+names(klems_long)[1] = "NIC98_Group"
+
+klems_long = klems_long[,-c(2:6)]
+
+a$NIC98_Group = sprintf("%02d",a$NIC98_Group)
+klems_long$NIC98_Group = sprintf("%02d",klems_long$NIC98_Group)
+
+a = merge(a,klems_long,by=c("NIC98_Group","round"))
+
+
+a = a[,-c(1,17:19,25:36)] # removing NIC 70, NIC 87, NIC 98, NIC98_Group, All State Districts Except 72
+geog = a[,c(20,3:5,7)] # only StateDistrict_72, Sector, State_Region, State, District
+subround = a[,c(20,2,6,1)] # Only HHID, SubRound, StateDistrict_72, Round
 
 # Not all districts had all surveys done in one sub round
 # Therefore there will be variation in temperature within district
@@ -23,8 +48,11 @@ round_ag = subround %>%
 ```
 
 
+
 Aggregate data 
 ```{r}
+
+#Mean averages of a lot of variables 
 b = a %>% 
   group_by(State_District_72,Job_Sector,round) %>% 
   summarise(mpce = mean(mpce,na.rm = T),
@@ -32,8 +60,10 @@ b = a %>%
             clothing_annual = mean(clothing_annual,na.rm = T),
             goodservice_month = mean(GoodsServicesExp_monthly,na.rm = T),
             eduhealth_annual = mean(EduHealth_annual,na.rm = T),
+            caplab = mean(caplab,na.rm = T),
             total = n())
 
+#Finding total count of households in each district to calculate shares
 c = a %>% 
   group_by(State_District_72,round) %>% 
   summarise(freq= n())
@@ -57,7 +87,7 @@ adding geog to data
 g = merge(f,geog,by=c("State_District_72"))
 g$newid = paste0(g$State_District_72,g$round,g$Job_Sector)
 g = g[!duplicated(g$newid),]
-g = g[,-c(18)]
+g = g[,-c(19)]
 ```
 
 

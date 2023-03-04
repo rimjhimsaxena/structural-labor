@@ -1,0 +1,151 @@
+---
+title: "Untitled"
+author: "Rimjhim Saxena"
+date: "2023-03-03"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+Loading data
+```{r,echo=FALSE,include=FALSE}
+rm(list = ls())
+
+setwd("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/structural-labor/")
+
+df = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/06Final/final-wgeog-temp.csv")
+
+df = df[!is.na(df$tmax),]
+
+df$share_exposure = (df$tot_exposure/df$freq)*100
+
+df$labcap = 1/df$caplab
+df$temp_effective = df$tmax*df$labcap
+```
+
+
+Panel regression  - by Job Sector
+
+```{r,echo=FALSE,include=FALSE}
+library(fixest)
+library(modelsummary)
+library(kableExtra)
+df_split = split(df,df$Job_Sector)
+
+reg_results = lapply(df_split, function(x) feols(share~tmax|as.factor(State_District_72),data = x,cluster = c("State_District_72")))
+lapply(reg_results, summary)
+
+tab_1 <- modelsummary(reg_results,
+                      stars = TRUE,
+                      title = "Sector Realloacation",
+                      gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
+                      output = "markdown",
+                      escape = FALSE,
+                      fmt = "%.4f")
+
+
+reg_effect = lapply(df_split, function(x) feols(share~temp_effective|as.factor(State_District_72) ,data = x,cluster = c("State_District_72")))
+lapply(reg_effect, summary)
+
+tab_2 <- modelsummary(reg_effect,
+                      stars = TRUE,
+                      title = "Sector Realloacation",
+                      gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
+                      output = "markdown",
+                      escape = FALSE,
+                      fmt = "%.4f")
+```
+
+\tiny
+```{r,echo=FALSE}
+tab_1
+tab_2
+```
+
+Panel regression - by Exposure
+
+```{r,echo=FALSE,include=FALSE}
+exp_split = split(df,df$Exposure)
+
+reg_exp = lapply(exp_split, function(x) feols(share_exposure~temp_effective|as.factor(State_District_72) + as.factor(round) + as.factor(State_Region)^as.factor(round),data = x))
+lapply(reg_exp, summary)
+
+tab_3 <- modelsummary(reg_exp,
+                      stars = TRUE,
+                      title = "Sector Realloacation",
+                      gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
+                      output = "markdown",
+                      escape = FALSE,
+                      fmt = "%.4f")
+```
+
+```{r,echo=FALSE}
+tab_3
+
+```
+
+Panel regression - expenditure
+
+```{r,echo=FALSE,include=FALSE}
+df_split = split(df,df$Job_Sector)
+
+reg_results = lapply(df_split, function(x) feols(eduhealth_annual~temp_effective|District ,data = x))
+lapply(reg_results, summary)
+```
+
+
+```{r,echo=FALSE,include=FALSE}
+library(dplyr)
+df$newid = paste0(df$State_District_72,df$round,df$Job_Sector)
+df = df[!duplicated(df$newid),]
+
+df$agri = ifelse(df$Job_Sector=="Agriculture",1,0)
+
+agri = df %>% 
+  group_by(State_District_72,round,agri) %>% 
+  mutate(total_ag = sum(total))
+
+agri$share_ag = (agri$total_ag/agri$freq)*100
+
+
+```
+
+
+```{r,echo=FALSE,include=FALSE}
+agri_split = split(agri,agri$agri)
+
+reg_results = lapply(agri_split, function(x) feols(share_ag~temp_effective|State_District_72 + as.factor(round) + as.factor(State_Region)^as.factor(round) ,data = x))
+#lapply(reg_results, summary)
+
+tab_4 <- modelsummary(reg_results,
+                      stars = TRUE,
+                      title = "Sector Realloacation - Ag/Non Ag",
+                      gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
+                      output = "markdown",
+                      escape = FALSE,
+                      fmt = "%.4f")
+```
+
+
+\tiny
+```{r,echo=FALSE}
+
+tab_4
+```
+
+
+```{r,echo=FALSE}
+library(ggplot2)
+
+ggplot(data = agri, aes(x = tmax, y = share_ag, color = factor(agri)))+
+  geom_point() +
+  facet_wrap(~State) +
+  geom_smooth(method = "lm") +
+  scale_color_manual(values = c("indianred", "steelblue4"))
+
+ggplot(data = agri, aes(x = temp_effective, y = share_ag,  color = factor(agri))) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  scale_color_manual(values = c("indianred", "steelblue4"))
+```
