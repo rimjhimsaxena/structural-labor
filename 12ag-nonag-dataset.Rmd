@@ -1,0 +1,70 @@
+---
+title: "Untitled"
+author: "Rimjhim Saxena"
+date: "2023-03-04"
+output: html_document
+---
+
+```{r setup, include=FALSE,echo=FALSE}
+rm(list = ls())
+library(tidyverse)
+library(caret)
+
+setwd("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/structural-labor/")
+
+a = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/04Append/nss_43_51_56_57_63_66_klems.csv")
+
+
+a = a[,-c(1,17:19,25:36)] # removing NIC 70, NIC 87, NIC 98, NIC98_Group, All State Districts Except 72
+geog = a[,c(20,3:5,7)] # only StateDistrict_72, Sector, State_Region, State, District
+
+dummy = dummyVars(~Job_Sector, data = a)
+
+dataframe = predict(dummy,newdata = a)
+
+a = cbind(a,dataframe)
+
+
+```
+
+
+Ag vs Non Ag
+```{r,include=FALSE,echo=FALSE}
+b = a %>% 
+  group_by(State_District_72,Job_SectorAgriculture,round) %>% 
+  summarise(mpce = mean(mpce,na.rm = T),
+            food_month = mean(foodexp_monthly,na.rm = T),
+            clothing_annual = mean(clothing_annual,na.rm = T),
+            goodservice_month = mean(GoodsServicesExp_monthly,na.rm = T),
+            eduhealth_annual = mean(EduHealth_annual,na.rm = T),
+            caplab = mean(caplab,na.rm = T),
+            total = n())
+
+#Finding total count of households in each district to calculate shares
+c = a %>% 
+  group_by(State_District_72,round) %>% 
+  summarise(freq= n())
+
+
+d = merge(b,c,by=c("State_District_72","round"),all.x = T)
+d$share = round((d$total/d$freq)*100,2)
+
+
+  
+g = merge(d,geog,by=c("State_District_72"))
+g$newid = paste0(g$State_District_72,g$round,g$Job_SectorAgriculture)
+g = g[!duplicated(g$newid),]
+g = g[,-c(17)]
+
+
+```
+
+
+
+Write data 
+
+```{r}
+
+write.csv(g,"~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/06Final/final-wgeog-agnonag.csv",row.names = F)
+
+```

@@ -11,8 +11,8 @@ output:
 Loading data
 ```{r,echo=FALSE,include=FALSE}
 rm(list = ls())
+library(plm)
 
-setwd("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/structural-labor/")
 
 df = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/06Final/final-wgeog-temp.csv")
 
@@ -22,6 +22,13 @@ df$share_exposure = (df$tot_exposure/df$freq)*100
 
 df$labcap = 1/df$caplab
 df$temp_effective = df$tmax*df$labcap
+
+df$State = substr(df$State_District_72,1,2)
+
+df = df[-which(df$DIST2004==9999),]
+
+pdf = pdata.frame(df,index = c("State_District_72","round","industry"))
+
 ```
 
 
@@ -31,9 +38,11 @@ Panel regression  - by Job Sector
 library(fixest)
 library(modelsummary)
 library(kableExtra)
-df_split = split(df,df$Job_Sector)
+df_split = split(pdf,pdf$industry)
 
-reg_results = lapply(df_split, function(x) feols(share~tmax|as.factor(State_District_72),data = x,cluster = c("State_District_72")))
+reg_results = lapply(df_split, function(x) feols(share~tmax|as.factor(State_District_72) + as.factor(round) +
+                                                   as.factor(State_Region)^as.factor(round),data = x,cluster = c("State_District_72")))
+
 lapply(reg_results, summary)
 
 tab_1 <- modelsummary(reg_results,
@@ -45,7 +54,8 @@ tab_1 <- modelsummary(reg_results,
                       fmt = "%.4f")
 
 
-reg_effect = lapply(df_split, function(x) feols(share~temp_effective|as.factor(State_District_72) ,data = x,cluster = c("State_District_72")))
+reg_effect = lapply(df_split, function(x) feols(share~heat_acc|as.factor(State_District_72)+ as.factor(round) + as.factor(State_Region)^as.factor(round),data = x,cluster = c("State_District_72")))
+
 lapply(reg_effect, summary)
 
 tab_2 <- modelsummary(reg_effect,
@@ -68,7 +78,7 @@ Panel regression - by Exposure
 ```{r,echo=FALSE,include=FALSE}
 exp_split = split(df,df$Exposure)
 
-reg_exp = lapply(exp_split, function(x) feols(share_exposure~temp_effective|as.factor(State_District_72) + as.factor(round) + as.factor(State_Region)^as.factor(round),data = x))
+reg_exp = lapply(exp_split, function(x) feols(share_exposure~tmax|as.factor(State_District_72) + as.factor(round) +as.factor(State_Region)^as.factor(round),data = x))
 lapply(reg_exp, summary)
 
 tab_3 <- modelsummary(reg_exp,
@@ -82,23 +92,12 @@ tab_3 <- modelsummary(reg_exp,
 
 ```{r,echo=FALSE}
 tab_3
-
-```
-
-Panel regression - expenditure
-
-```{r,echo=FALSE,include=FALSE}
-df_split = split(df,df$Job_Sector)
-
-reg_results = lapply(df_split, function(x) feols(eduhealth_annual~temp_effective|District ,data = x))
-lapply(reg_results, summary)
 ```
 
 
+# Ag - NonAg
 ```{r,echo=FALSE,include=FALSE}
 library(dplyr)
-df$newid = paste0(df$State_District_72,df$round,df$Job_Sector)
-df = df[!duplicated(df$newid),]
 
 df$agri = ifelse(df$Job_Sector=="Agriculture",1,0)
 
@@ -113,9 +112,12 @@ agri$share_ag = (agri$total_ag/agri$freq)*100
 
 
 ```{r,echo=FALSE,include=FALSE}
+library(fixest)
+library(modelsummary)
+library(kableExtra)
 agri_split = split(agri,agri$agri)
 
-reg_results = lapply(agri_split, function(x) feols(share_ag~temp_effective|State_District_72 + as.factor(round) + as.factor(State_Region)^as.factor(round) ,data = x))
+reg_results = lapply(agri_split, function(x) feols(share_ag~tmax|State_District_72 + as.factor(State)^as.factor(round) ,data = x))
 #lapply(reg_results, summary)
 
 tab_4 <- modelsummary(reg_results,

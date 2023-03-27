@@ -1,0 +1,215 @@
+---
+title: "Manufacturing vs Non Manufacturing"
+author: "Rimjhim Saxena"
+date: "2023-03-06"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+library(dplyr)
+library(tidyverse)
+library(plm)
+
+df = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/06Final/final-wgeog-temp.csv")
+
+df = df[!is.na(df$tmax),]
+
+df$labcap = 1/df$caplab
+
+df$temp_effective = df$tmax*df$labcap
+
+df$State = substr(df$State_District_72,1,2)
+
+df$logshare = log(df$share)
+
+df = df[which(df$industry=="Manufacturing"|df$industry=="Service"),]
+```
+
+
+```{r,include=FALSE,echo=FALSE}
+library(fixest)
+library(modelsummary)
+library(kableExtra)
+
+df$logshare = log(df$share)
+
+reg_temp1 = feols(share ~ tmax*industry|as.factor(State_District_72), data = df, cluster = c("State_District_72"))
+
+reg_temp2 = feols(share ~ tmax*industry|as.factor(State_District_72) + as.factor(State)^as.factor(round), data = df, cluster = c("State_District_72"))
+
+reg_effect1 = feols(share ~ temp_effective*industry|as.factor(State_District_72), data = df, cluster = c("State_District_72"))
+
+reg_effect2 = feols(share ~ temp_effective*industry|as.factor(State_District_72) + as.factor(State)^as.factor(round), data = df, cluster = c("State_District_72"))
+reg_acc1 = feols(share ~ heat_acc*industry|as.factor(State_District_72) , data = df, cluster = c("State_District_72"))
+reg_acc2 = feols(share ~ heat_acc*industry|as.factor(State_District_72) + as.factor(State)^as.factor(round), data = df, cluster = c("State_District_72"))
+
+regs = list("temp" = reg_temp1,"temp" = reg_temp2,"effective temp" = reg_effect1, "effective temp" = reg_effect2,"heat accumulation" = reg_acc1,"heat accumulation" = reg_acc2)
+
+
+tab_1 <- modelsummary(regs,
+                      stars = TRUE,
+                      title = "Mfg vs Non Mfg",
+                      gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
+                      output = "markdown",
+                      escape = FALSE,
+                      fmt = "%.4f")
+
+
+reg_temp1 = feols(logshare ~ tmax*industry|as.factor(State_District_72), data = df, cluster = c("State_District_72"))
+reg_temp2 = feols(logshare ~ tmax*industry|as.factor(State_District_72) + as.factor(State)^as.factor(round), data = df, cluster = c("State_District_72"))
+reg_effect1 = feols(logshare ~ temp_effective*industry|as.factor(State_District_72), data = df, cluster = c("State_District_72"))
+reg_effect2 = feols(logshare ~ temp_effective*industry|as.factor(State_District_72) + as.factor(State)^as.factor(round), data = df, cluster = c("State_District_72"))
+reg_acc1 = feols(logshare ~ heat_acc*industry|as.factor(State_District_72) , data = df, cluster = c("State_District_72"))
+reg_acc2 = feols(logshare ~ heat_acc*industry|as.factor(State_District_72) + as.factor(State)^as.factor(round), data = df, cluster = c("State_District_72"))
+
+regs_log = list("temp" = reg_temp1,"temp" = reg_temp2,"effective temp" = reg_effect1, "effective temp" = reg_effect2,"heat accumulation" = reg_acc1,"heat accumulation" = reg_acc2)
+
+
+tab_2 <- modelsummary(regs_log,
+                      stars = TRUE,
+                      title = "Mfg vs Non Mfg (Log share)",
+                      gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
+                      output = "markdown",
+                      escape = FALSE,
+                      fmt = "%.4f")
+
+
+reg_temp1 = feols(mpce ~ tmax*industry|as.factor(State_District_72), data = df, cluster = c("State_District_72"))
+reg_temp2 = feols(mpce ~ tmax*industry|as.factor(State_District_72) + as.factor(State)^as.factor(round), data = df, cluster = c("State_District_72"))
+reg_effect1 = feols(mpce ~ temp_effective*industry|as.factor(State_District_72), data = df, cluster = c("State_District_72"))
+reg_effect2 = feols(mpce ~ temp_effective*industry|as.factor(State_District_72) + as.factor(State)^as.factor(round), data = df, cluster = c("State_District_72"))
+reg_acc1 = feols(mpce ~ heat_acc*industry|as.factor(State_District_72) , data = df, cluster = c("State_District_72"))
+reg_acc2 = feols(mpce ~ heat_acc*industry|as.factor(State_District_72) + as.factor(State)^as.factor(round), data = df, cluster = c("State_District_72"))
+
+regs_log = list("temp" = reg_temp1,"temp" = reg_temp2,"effective temp" = reg_effect1, "effective temp" = reg_effect2,"heat accumulation" = reg_acc1,"heat accumulation" = reg_acc2)
+
+
+tab_5 <- modelsummary(regs_log,
+                      stars = TRUE,
+                      title = "Mfg vs Non Mfg (MPCE in Rs)",
+                      gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
+                      output = "markdown",
+                      escape = FALSE,
+                      fmt = "%.4f")
+```
+
+
+\tiny
+```{r,echo=FALSE}
+tab_1
+tab_2
+tab_5
+```
+
+$\%\Delta y = e^{\beta \Delta x}-1$
+
+Using effective temp result $\%\Delta y = 0.123 \%$
+Mean share ag = 11.93%
+
+
+
+```{r,echo=FALSE,include=FALSE}
+geog = df[,c(1,15)]
+geog = geog[!duplicated(geog$State_District_72),]
+df$ld = ifelse(df$round>=57,1,0)
+
+df_long = df %>% 
+  group_by(State_District_72,industry,ld) %>% 
+  summarise(food_month = mean(food_month,na.rm = T),
+            clothing_annual = mean(clothing_annual,na.rm = T),
+            goodservice_month = mean(goodservice_month,na.rm = T),
+            eduhealth_annual = mean(eduhealth_annual,na.rm = T),
+            caplab = mean(caplab,na.rm = T),
+            total = sum(total,na.rm = T),
+            freq = sum(freq,na.rm = T),
+            share = mean(share,na.rm = T),
+            tmax = mean(tmax,na.rm = T),
+            heat_acc = mean(heat_acc,na.rm = T),
+            labcap = mean(labcap,na.rm = T),
+            temp_effective = mean(temp_effective,na.rm = T),
+            mpce = mean(mpce,na.rm = T))
+
+df_long$logshare = log(df_long$share)
+df_long$State = substr(df_long$State_District_72,1,2)
+
+library(tidyr)
+df_long_wide = pivot_wider(df_long,id_cols = c(State_District_72,industry),names_from = ld,values_from = c(food_month,clothing_annual,goodservice_month,eduhealth_annual,caplab,total,freq,share,tmax,heat_acc,labcap,logshare,mpce))
+
+df_long_wide = df_long_wide[complete.cases(df_long_wide),]
+```
+
+
+
+```{r,echo=FALSE,include=FALSE}
+df_long_wide$State = substr(df_long_wide$State_District_72,1,2)
+
+df_long_wide$total_diff = df_long_wide$total_1 - df_long_wide$total_0
+df_long_wide$freq_diff = df_long_wide$freq_1 - df_long_wide$freq_0
+df_long_wide$share_diff = df_long_wide$share_1 - df_long_wide$share_0
+
+df_long_wide$tmax_diff = df_long_wide$tmax_1- df_long_wide$tmax_0
+df_long_wide$caplab_diff = df_long_wide$caplab_1- df_long_wide$caplab_0
+
+df_long_wide$heat_acc_diff = df_long_wide$heat_acc_1- df_long_wide$heat_acc_0
+
+df_long_wide$temp_effect_diff = df_long_wide$tmax_diff*df_long_wide$caplab_diff
+
+df_long_wide$logshare_diff = df_long_wide$logshare_1 - df_long_wide$logshare_0
+
+df_long_wide = merge(df_long_wide,geog,by=c("State_District_72"))
+
+df_long_wide$mpce_diff = df_long_wide$mpce_1 - df_long_wide$mpce_0
+```
+
+
+```{r,echo=FALSE,include=FALSE}
+reg_temp1 = feols(logshare_diff ~ tmax_diff*industry, data = df_long_wide, cluster = c("State_Region"))
+reg_temp2 = feols(logshare_diff ~ tmax_diff*industry|as.factor(State_Region), data = df_long_wide, cluster = c("State_Region"))
+
+reg_temp3 = feols(logshare_diff ~ temp_effect_diff*industry, data = df_long_wide, cluster = c("State_Region"))
+reg_temp4 = feols(logshare_diff ~ temp_effect_diff*industry|as.factor(State_Region), data = df_long_wide, cluster = c("State_Region"))
+
+reg_temp5 = feols(logshare_diff ~ heat_acc_diff*industry, data = df_long_wide, cluster = c("State_Region"))
+reg_temp6 = feols(logshare_diff ~ heat_acc_diff*industry|as.factor(State_Region), data = df_long_wide, cluster = c("State_Region"))
+
+regs = list("temp" = reg_temp1,"temp" = reg_temp2,"effective temp" = reg_temp3, "effective temp" = reg_temp4,"heat accumulation" = reg_temp5,"heat accumulation" = reg_temp6)
+
+
+tab_3 <- modelsummary(regs,
+                      stars = TRUE,
+                      title = "Mfg vs Non Mfg (diff in log share)",
+                      gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
+                      output = "markdown",
+                      escape = FALSE,
+                      fmt = "%.4f")
+
+reg_temp1 = feols(mpce_diff ~ tmax_diff*industry, data = df_long_wide, cluster = c("State_Region"))
+reg_temp2 = feols(mpce_diff ~ tmax_diff*industry|as.factor(State_Region), data = df_long_wide, cluster = c("State_Region"))
+
+reg_temp3 = feols(mpce_diff ~ temp_effect_diff*industry, data = df_long_wide, cluster = c("State_Region"))
+reg_temp4 = feols(mpce_diff ~ temp_effect_diff*industry|as.factor(State_Region), data = df_long_wide, cluster = c("State_Region"))
+
+reg_temp5 = feols(mpce_diff ~ heat_acc_diff*industry, data = df_long_wide, cluster = c("State_Region"))
+reg_temp6 = feols(mpce_diff ~ heat_acc_diff*industry|as.factor(State_Region), data = df_long_wide, cluster = c("State_Region"))
+
+regs = list(reg_temp1,reg_temp2,reg_temp3,reg_temp4,reg_temp5,reg_temp6)
+
+tab_4 <- modelsummary(regs,
+                      stars = TRUE,
+                      title = "Mfg vs Non Mfg (diff in MPCE)",
+                      gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
+                      output = "markdown",
+                      escape = FALSE,
+                      fmt = "%.4f")
+```
+
+\tiny
+```{r,echo=FALSE}
+tab_3
+tab_4
+```
+
+

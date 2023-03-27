@@ -8,9 +8,41 @@ output: html_document
 ```{r setup, include=FALSE}
 rm(list = ls())
 library(dplyr)
+library(tidyverse)
 a = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/04Append/nss_43_51_56_57_63_66.csv")
 
-klems = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/EXTRA/NIC98-Sector-Exposure.csv")
+a = a %>% 
+  mutate(klems_code = case_when(Job_Sector=="Agriculture"~"A+B",
+                                Job_Sector=="BasicMetal"~"2728",
+                                Job_Sector=="Business"~"7174",
+                                Job_Sector=="Chemical"~"24",
+                                Job_Sector=="Construction"~"F",
+                                Job_Sector=="Education"~"M",
+                                Job_Sector=="Electric"~"3033",
+                                Job_Sector=="Financial"~"J",
+                                Job_Sector=="FoodNBev"~"1516",
+                                Job_Sector=="Health"~"N",
+                                Job_Sector=="Hotels"~"H",
+                                Job_Sector=="Machinery"~"29",
+                                Job_Sector=="Manufacturing"~"3637",
+                                Job_Sector=="Mining"~"C",
+                                Job_Sector=="NonMetallicMineral"~"26",
+                                Job_Sector=="OtherServices"~"70OP",
+                                Job_Sector=="Paper"~"2122",
+                                Job_Sector=="Petrol"~"23",
+                                Job_Sector=="PublicAdministration"~"L",
+                                Job_Sector=="Rubber"~"25",
+                                Job_Sector=="Telecom"~"64",
+                                Job_Sector=="Textile"~"1719",
+                                Job_Sector=="Trade"~"G",
+                                Job_Sector=="TransportEquip"~"3435",
+                                Job_Sector=="TransportNStorage"~"6063",
+                                Job_Sector=="Utilities"~"E",
+                                Job_Sector=="Wood"~"20",
+                                Job_Sector=="Unknown"~NA))
+klems = read.csv("~/OneDrive - UCB-O365/01CURRENT/Structural Transformation Climate Change India/Data/EXTRA/klems_data.csv")
+
+names(klems)[1] = "klems_code"
 
 klems_long = klems %>% 
   pivot_longer(cols = c(caplab_1987,caplab_1994,caplab_2000,caplab_2001,caplab_2006,caplab_2009),
@@ -25,19 +57,17 @@ klems_long = klems_long %>%
                            year=="caplab_2006" ~ 63,
                            year=="caplab_2009" ~ 66))
 
-names(klems_long)[1] = "NIC98_Group"
+#names(klems_long)[1] = "NIC98_Group"
 
-klems_long = klems_long[,-c(2:6)]
-
-a$NIC98_Group = sprintf("%02d",a$NIC98_Group)
-klems_long$NIC98_Group = sprintf("%02d",klems_long$NIC98_Group)
-
-a = merge(a,klems_long,by=c("NIC98_Group","round"))
+klems_long = klems_long[,-c(2:3)]
 
 
-a = a[,-c(1,17:19,25:36)] # removing NIC 70, NIC 87, NIC 98, NIC98_Group, All State Districts Except 72
-geog = a[,c(20,3:5,7)] # only StateDistrict_72, Sector, State_Region, State, District
-subround = a[,c(20,2,6,1)] # Only HHID, SubRound, StateDistrict_72, Round
+a = merge(a,klems_long,by=c("klems_code","round"))
+
+
+a = a[,-c(19:30)] # removing All State Districts Except 72
+geog = a[,c(18,2,5,6,7,9)] # only StateDistrict_72, Sector, State_Region, State, District
+subround = a[,c(3,2,8,18)] # Only HHID, SubRound, StateDistrict_72, Round
 
 # Not all districts had all surveys done in one sub round
 # Therefore there will be variation in temperature within district
@@ -51,10 +81,23 @@ round_ag = subround %>%
 
 Aggregate data 
 ```{r}
+a$industry = ifelse(a$klems_code=="G"|a$klems_code=="6063"|a$klems_code=="H"|
+                      a$klems_code=="64"|a$klems_code=="J"|a$klems_code=="L"|
+                      a$klems_code=="M"|a$klems_code=="N"|a$klems_code=="70OP"|
+                      a$klems_code=="7174","Service",NA)
 
+a$industry = ifelse(a$klems_code=="A+B","Agriculture",a$industry)
+a$industry = ifelse(a$klems_code=="1516"|a$klems_code=="1719"|a$klems_code=="20"|
+                      a$klems_code=="2122"|a$klems_code=="23"|a$klems_code=="24"|
+                      a$klems_code=="25"|a$klems_code=="26"|a$klems_code=="2728"|
+                      a$klems_code=="29"|a$klems_code=="3033"|a$klems_code=="3435"|
+                      a$klems_code=="3637","Manufacturing",a$industry)
+
+a$industry = ifelse(is.na(a$industry),"None",a$industry)
 #Mean averages of a lot of variables 
+
 b = a %>% 
-  group_by(State_District_72,Job_Sector,round) %>% 
+  group_by(State_District_72,industry,round) %>% 
   summarise(mpce = mean(mpce,na.rm = T),
             food_month = mean(foodexp_monthly,na.rm = T),
             clothing_annual = mean(clothing_annual,na.rm = T),
@@ -71,7 +114,9 @@ c = a %>%
 
 d = merge(b,c,by=c("State_District_72","round"),all.x = T)
 d$share = round((d$total/d$freq)*100,2)
-d$Exposure = ifelse(d$Job_Sector=="Service","Insular","Exposed")
+d$Exposure = ifelse(d$industry=="Service","Insular","Exposed")
+
+a$Exposure = ifelse(a$industry=="Service","Insular","Exposed")
 
 e = a %>% 
   group_by(State_District_72,round,Exposure) %>% 
@@ -84,10 +129,11 @@ f = merge(d,e,by=c("State_District_72","round","Exposure"))
 adding geog to data
 
 ```{r}
-g = merge(f,geog,by=c("State_District_72"))
-g$newid = paste0(g$State_District_72,g$round,g$Job_Sector)
-g = g[!duplicated(g$newid),]
-g = g[,-c(19)]
+geog$newid = paste0(geog$State_District_72,geog$round)
+geog = geog[!duplicated(geog$newid),]
+geog = geog[,-7]
+
+g = merge(f,geog,by=c("State_District_72","round"))
 ```
 
 
